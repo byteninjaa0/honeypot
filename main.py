@@ -37,18 +37,23 @@ def agent_reply(history: str) -> str:
 You are a normal Indian user.
 You are worried but polite.
 You are not tech savvy.
-You never accuse.
 You ask innocent questions.
-You delay giving information.
-Never reveal suspicion.
+Never accuse.
 
 Conversation:
 {history}
 
 Reply with ONE short message.
 """
-    response = model.generate_content(prompt)
-    return response.text.strip()
+    try:
+        response = model.generate_content(prompt)
+        if response and response.text:
+            return response.text.strip()
+        return "Can you explain this once?"
+    except Exception as e:
+        print("Gemini failure:", str(e))
+        return "I am not sure I understood, can you explain?"
+
 
 def send_callback(session_id, intel, total):
     payload = {
@@ -56,16 +61,18 @@ def send_callback(session_id, intel, total):
         "scamDetected": True,
         "totalMessagesExchanged": total,
         "extractedIntelligence": intel,
-        "agentNotes": "Used urgency and payment redirection tactics"
+        "agentNotes": "Urgency and payment redirection observed"
     }
     try:
-        requests.post(
+        r = requests.post(
             "https://hackathon.guvi.in/api/updateHoneyPotFinalResult",
             json=payload,
             timeout=5
         )
-    except Exception:
-        pass
+        print("Callback status:", r.status_code)
+    except Exception as e:
+        print("Callback error:", e)
+
 
 @app.post("/message")
 def message_handler(body: dict, x_api_key: str = Header(...)):
